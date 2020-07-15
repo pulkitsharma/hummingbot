@@ -207,9 +207,9 @@ def validate_strategy_file(file_path: str) -> Optional[str]:
         return f"{file_path} file does not exist."
     strategy = strategy_name_from_file(file_path)
     if strategy is None:
-        return f"Invalid configuration file or 'strategy' field is missing."
+        return "Invalid configuration file or 'strategy' field is missing."
     if strategy not in get_strategy_list():
-        return f"Invalid strategy specified in the file."
+        return "Invalid strategy specified in the file."
     return None
 
 
@@ -391,6 +391,8 @@ def short_strategy_name(strategy: str) -> str:
         return "xemm"
     elif strategy == "arbitrage":
         return "arb"
+    elif strategy == "candle_spike":
+        return "candle_spike"
     else:
         return strategy
 
