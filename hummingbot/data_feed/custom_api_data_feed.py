@@ -6,6 +6,7 @@ from hummingbot.core.network_base import NetworkBase, NetworkStatus
 from hummingbot.logger import HummingbotLogger
 from hummingbot.core.utils.async_utils import safe_ensure_future
 from decimal import Decimal
+import ast
 
 
 class CustomAPIDataFeed(NetworkBase):
@@ -25,6 +26,8 @@ class CustomAPIDataFeed(NetworkBase):
         self._check_network_interval = 30.0
         self._ev_loop = asyncio.get_event_loop()
         self._price: Decimal = 0
+        self._high_price: Decimal = 0
+        self._low_price: Decimal = 0
         self._update_interval: float = update_interval
         self._fetch_price_task: Optional[asyncio.Task] = None
 
@@ -52,6 +55,12 @@ class CustomAPIDataFeed(NetworkBase):
     def get_price(self) -> Decimal:
         return self._price
 
+    def get_high_price(self) -> Decimal:
+        return self._high_price
+
+    def get_low_price(self) -> Decimal:
+        return self._low_price
+
     async def fetch_price_loop(self):
         while True:
             try:
@@ -71,7 +80,13 @@ class CustomAPIDataFeed(NetworkBase):
             resp_text = await resp.text()
             if resp.status != 200:
                 raise Exception(f"Custom API Feed {self.name} server error: {resp_text}")
-            self._price = Decimal(str(resp_text))
+            if "klines" in self._api_url:
+                klines = ast.literal_eval(resp_text)
+                self._high_price = Decimal(str(klines[0][2]))
+                self._low_price = Decimal(str(klines[0][3]))
+                self._price = (self._high_price + self._low_price) / 2
+            else:
+                self._price = Decimal(str(resp_text))
         self._ready_event.set()
 
     async def start_network(self):

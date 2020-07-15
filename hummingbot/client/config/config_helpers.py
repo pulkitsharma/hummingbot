@@ -418,6 +418,8 @@ def short_strategy_name(strategy: str) -> str:
         return "xemm"
     elif strategy == "arbitrage":
         return "arb"
+    elif strategy == "candle_spike":
+        return "candle_spike"
     else:
         return strategy
 
