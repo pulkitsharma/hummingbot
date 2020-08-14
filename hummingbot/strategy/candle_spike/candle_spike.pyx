@@ -337,10 +337,6 @@ cdef class CandleSpikeStrategy(StrategyBase):
         return self._hanging_order_ids
 
     @property
-    def active_maker_orders(self) -> List[Tuple[MarketBase, LimitOrder]]:
-        return self._sb_order_tracker.active_maker_orders
-
-    @property
     def market_info_to_active_orders(self) -> Dict[MarketTradingPairTuple, List[LimitOrder]]:
         return self._sb_order_tracker.market_pair_to_active_orders
 
@@ -978,9 +974,9 @@ cdef class CandleSpikeStrategy(StrategyBase):
             for order in active_orders:
                 self.c_cancel_order(self._market_info, order.client_order_id)
         else:
-            self.logger().info(f"Not cancelling active orders since difference between new order prices "
-                               f"and current order prices is within "
-                               f"{self._order_refresh_tolerance_pct:.2%} order_refresh_tolerance_pct")
+            # self.logger().info(f"Not cancelling active orders since difference between new order prices "
+            #                   f"and current order prices is within "
+            #                   f"{self._order_refresh_tolerance_pct:.2%} order_refresh_tolerance_pct")
             self.set_timers()
 
     cdef c_cancel_hanging_orders(self):
