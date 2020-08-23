@@ -86,7 +86,7 @@ cdef class CandleSpikeStrategy(StrategyBase):
                  price_floor: Decimal = s_decimal_neg_one,
                  ping_pong_enabled: bool = True,
                  logging_options: int = OPTION_LOG_ALL,
-                 status_report_interval: float = 900,
+                 status_report_interval: float = 60,
                  minimum_spread: Decimal = Decimal(0),
                  price_adjustment_per_min: Decimal = Decimal("0.0001"),
                  hb_app_notification: bool = False,
@@ -626,21 +626,20 @@ cdef class CandleSpikeStrategy(StrategyBase):
             size = market.c_quantize_order_amount(self.trading_pair, size)
             if size > 0:
                 buys.append(PriceSize(price, size))
-        else:
-            for level in range(0, self._order_levels):
-                price = self.c_get_low_price() * (Decimal("1") - self._bid_spread - (level * self._order_level_spread))
-                price = market.c_quantize_order_price(self.trading_pair, price)
-                size = self._order_amount + (self._order_level_amount * level)
-                size = market.c_quantize_order_amount(self.trading_pair, size)
-                if size > 0:
-                    buys.append(PriceSize(price, size))
-            for level in range(0, self._order_levels):
-                price = self.c_get_high_price() * (Decimal("1") + self._ask_spread + (level * self._order_level_spread))
-                price = market.c_quantize_order_price(self.trading_pair, price)
-                size = self._order_amount + (self._order_level_amount * level)
-                size = market.c_quantize_order_amount(self.trading_pair, size)
-                if size > 0:
-                    sells.append(PriceSize(price, size))
+        for level in range(0, self._order_levels):
+            price = self.c_get_low_price() * (Decimal("1") - self._bid_spread - (level * self._order_level_spread))
+            price = market.c_quantize_order_price(self.trading_pair, price)
+            size = self._order_amount + (self._order_level_amount * level)
+            size = market.c_quantize_order_amount(self.trading_pair, size)
+            if size > 0:
+                buys.append(PriceSize(price, size))
+        for level in range(0, self._order_levels):
+            price = self.c_get_high_price() * (Decimal("1") + self._ask_spread + (level * self._order_level_spread))
+            price = market.c_quantize_order_price(self.trading_pair, price)
+            size = self._order_amount + (self._order_level_amount * level)
+            size = market.c_quantize_order_amount(self.trading_pair, size)
+            if size > 0:
+                sells.append(PriceSize(price, size))
         return Proposal(buys, sells)
 
     cdef tuple c_get_adjusted_available_balance(self, list orders):
