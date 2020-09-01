@@ -9,10 +9,11 @@ class OrderBookEntry {
     double price;
     double amount;
     int64_t updateId;
+    int64_t timestamp;
 
     public:
         OrderBookEntry();
-        OrderBookEntry(double price, double amount, int64_t updateId);
+        OrderBookEntry(double price, double amount, int64_t updateId, int64_t timestamp);
         OrderBookEntry(const OrderBookEntry &other);
         OrderBookEntry &operator=(const OrderBookEntry &other);
         friend bool operator<(OrderBookEntry const &a, OrderBookEntry const &b);
@@ -23,6 +24,7 @@ class OrderBookEntry {
         double getPrice() const;
         double getAmount() const;
         int64_t getUpdateId() const;
+	int64_t getTimestamp() const;
 };
 
 #endif

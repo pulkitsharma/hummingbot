@@ -38,6 +38,7 @@ cdef class MarketBase(NetworkIterator):
     cdef ClientOrderBookQueryResult c_get_quote_volume_for_price(self, str trading_pair, bint is_buy, object price)
     cdef ClientOrderBookQueryResult c_get_vwap_for_volume(self, str trading_pair, bint is_buy, object volume)
     cdef ClientOrderBookQueryResult c_get_price_for_volume(self, str trading_pair, bint is_buy, object volume)
+    cdef ClientOrderBookQueryResult c_get_price_for_stable_volume(self, str trading_pair, bint is_buy, object volume)
     cdef object c_get_fee(self,
                           str base_currency,
                           str quote_currency,

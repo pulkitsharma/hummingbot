@@ -837,12 +837,14 @@ cdef class PureMarketMakingStrategy(StrategyBase):
 
         if len(proposal.buys) == 1:
             # Get the top bid price in the market using order_optimization_depth and your buy order volume
-            top_bid_price = self._market_info.get_price_for_volume(
+            top_bid_price = self._market_info.get_price_for_stable_volume(
                 False, self._bid_order_optimization_depth + own_buy_size).result_price
             price_quantum = market.c_get_order_price_quantum(
                 self.trading_pair,
                 top_bid_price
             )
+            self.logger().info("Stable buy price wall %f for depth %d.",
+                               price_quantum, self._bid_order_optimization_depth)
             # Get the price above the top bid
             price_above_bid = (ceil(top_bid_price / price_quantum) + 1) * price_quantum
 
@@ -853,12 +855,14 @@ cdef class PureMarketMakingStrategy(StrategyBase):
 
         if len(proposal.sells) == 1:
             # Get the top ask price in the market using order_optimization_depth and your sell order volume
-            top_ask_price = self._market_info.get_price_for_volume(
+            top_ask_price = self._market_info.get_price_for_stable_volume(
                 True, self._ask_order_optimization_depth + own_sell_size).result_price
             price_quantum = market.c_get_order_price_quantum(
                 self.trading_pair,
                 top_ask_price
             )
+            self.logger.info("Stable sell price wall %f for depth %d.",
+                             price_quantum, self._bid_order_optimization_depth)
             # Get the price below the top ask
             price_below_ask = (floor(top_ask_price / price_quantum) - 1) * price_quantum
 

@@ -58,7 +58,7 @@ cdef class CompositeOrderBook(OrderBook):
                 # price is further up the ask price range, continue searching
                 elif entry.getPrice() < price:
                     inc(ask_order_it)
-            cpp_asks.push_back(OrderBookEntry(price, amount, timestamp))
+            cpp_asks.push_back(OrderBookEntry(price, amount, timestamp, timestamp))
 
         elif order_fill_event.trade_type is TradeType.SELL:
             while bid_order_it != self._traded_order_book._bid_book.rend():
@@ -72,7 +72,7 @@ cdef class CompositeOrderBook(OrderBook):
                 # price is outside of the bid price range, break and insert the new filled order into the bid book
                 elif entry.getPrice() < price:
                     break
-            cpp_bids.push_back(OrderBookEntry(price, amount, timestamp))
+            cpp_bids.push_back(OrderBookEntry(price, amount, timestamp, timestamp))
 
         self._traded_order_book.c_apply_diffs(cpp_bids, cpp_asks, timestamp)
 
@@ -96,36 +96,39 @@ cdef class CompositeOrderBook(OrderBook):
             original_order_price = original_order_entry.getPrice()
             original_order_amount = original_order_entry.getAmount()
             original_order_update_id = original_order_entry.getUpdateId()
+            original_order_timestamp = original_order_entry.getTimestamp()
 
             while traded_order_it != self._traded_order_book._bid_book.rend():
                 traded_order_entry = deref(traded_order_it)
                 traded_order_price = traded_order_entry.getPrice()
                 traded_order_amount = traded_order_entry.getAmount()
                 traded_order_update_id = traded_order_entry.getUpdateId()
+                traded_order_timestamp = traded_order_entry.getTimestamp()
 
                 # Found matching price for the recorded filled order, return composite order book row
                 if traded_order_price == original_order_price:
                     composite_amount = original_order_amount - traded_order_amount
                     if composite_amount > 0:
-                        yield OrderBookRow(original_order_price, composite_amount, original_order_update_id)
+                        yield OrderBookRow(original_order_price, composite_amount, original_order_update_id, original_order_timestamp)
                     else:
                         cpp_bids_changes.push_back(OrderBookEntry(original_order_price,
                                                                   min(original_order_amount, traded_order_amount),
-                                                                  traded_order_update_id))
+                                                                  traded_order_update_id,
+                                                                  traded_order_timestamp))
                     inc(traded_order_it)
                     # continue to next original order book row
                     break
                 # Recorded filled order price is outside of the bid price range
                 elif traded_order_price > original_order_price:
                     # Remove the recorded entry and increment the pointer
-                    cpp_bids_changes.push_back(OrderBookEntry(traded_order_price, 0, traded_order_update_id))
+                    cpp_bids_changes.push_back(OrderBookEntry(traded_order_price, 0, traded_order_update_id, traded_order_timestamp))
                     inc(traded_order_it)
                 # Recorded filled order price is within lower end of the bid price range, yield original bid entry
                 elif traded_order_price < original_order_price:
-                    yield OrderBookRow(original_order_price, original_order_amount, original_order_update_id)
+                    yield OrderBookRow(original_order_price, original_order_amount, original_order_update_id, original_order_timestamp)
                     break
             else:
-                yield OrderBookRow(original_order_price, original_order_amount, original_order_update_id)
+                yield OrderBookRow(original_order_price, original_order_amount, original_order_update_id, original_order_timestamp)
 
             inc(order_it)
 
@@ -145,35 +148,38 @@ cdef class CompositeOrderBook(OrderBook):
             original_order_price = original_order_entry.getPrice()
             original_order_amount = original_order_entry.getAmount()
             original_order_update_id = original_order_entry.getUpdateId()
+            original_order_timestamp = original_order_entry.getTimestamp()
 
             while traded_order_it != self._traded_order_book._ask_book.end():
                 traded_order_entry = deref(traded_order_it)
                 traded_order_price = traded_order_entry.getPrice()
                 traded_order_amount = traded_order_entry.getAmount()
                 traded_order_update_id = traded_order_entry.getUpdateId()
+                traded_order_timestamp = traded_order_entry.getTimestamp()
 
                 if traded_order_price == original_order_price:
                     composite_amount = original_order_amount - traded_order_amount
                     if composite_amount > 0:
-                        yield OrderBookRow(original_order_price, composite_amount, original_order_update_id)
+                        yield OrderBookRow(original_order_price, composite_amount, original_order_update_id, original_order_timestamp)
                     else:
                         cpp_asks_changes.push_back(OrderBookEntry(original_order_price,
                                                                   min(original_order_amount, traded_order_amount),
-                                                                  traded_order_update_id))
+                                                                  traded_order_update_id,
+                                                                  traded_order_timestamp))
                     inc(traded_order_it)
                     # continue to next original order book row
                     break
                 # Recorded filled order price is within upper end of the ask price range, yield original ask entry
                 elif traded_order_price > original_order_price:
-                    yield OrderBookRow(original_order_price, original_order_amount, original_order_update_id)
+                    yield OrderBookRow(original_order_price, original_order_amount, original_order_update_id, original_order_timestamp)
                     break
                 # Recorded filled order price is outside of the ask price range, remove the recorded ask order
                 elif traded_order_price < original_order_price:
-                    cpp_asks_changes.push_back(OrderBookEntry(traded_order_price, 0, traded_order_update_id))
+                    cpp_asks_changes.push_back(OrderBookEntry(traded_order_price, 0, traded_order_update_id, traded_order_timestamp))
                     inc(traded_order_it)
 
             else:
-                yield OrderBookRow(original_order_price, original_order_amount, original_order_update_id)
+                yield OrderBookRow(original_order_price, original_order_amount, original_order_update_id, original_order_timestamp)
 
             inc(order_it)
 
