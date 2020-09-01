@@ -179,9 +179,9 @@ cdef class OrderBook(PubSub):
             vector[OrderBookEntry] cpp_bids
             vector[OrderBookEntry] cpp_asks
         for row in bids:
-            cpp_bids.push_back(OrderBookEntry(row.price, row.amount, row.update_id))
+            cpp_bids.push_back(OrderBookEntry(row.price, row.amount, row.update_id, row.timestamp))
         for row in asks:
-            cpp_asks.push_back(OrderBookEntry(row.price, row.amount, row.update_id))
+            cpp_asks.push_back(OrderBookEntry(row.price, row.amount, row.update_id, row.timestamp))
         self.c_apply_diffs(cpp_bids, cpp_asks, update_id)
 
     def apply_snapshot(self, bids: List[OrderBookRow], asks: List[OrderBookRow], update_id: int):
@@ -189,9 +189,9 @@ cdef class OrderBook(PubSub):
             vector[OrderBookEntry] cpp_bids
             vector[OrderBookEntry] cpp_asks
         for row in bids:
-            cpp_bids.push_back(OrderBookEntry(row.price, row.amount, row.update_id))
+            cpp_bids.push_back(OrderBookEntry(row.price, row.amount, row.update_id, row.timestamp))
         for row in asks:
-            cpp_asks.push_back(OrderBookEntry(row.price, row.amount, row.update_id))
+            cpp_asks.push_back(OrderBookEntry(row.price, row.amount, row.update_id, row.timestamp))
         self.c_apply_snapshot(cpp_bids, cpp_asks, update_id)
 
     def apply_trade(self, trade: OrderBookTradeEvent):
@@ -225,10 +225,10 @@ cdef class OrderBook(PubSub):
             int64_t last_update_id = 0
 
         for row in bids_array:
-            cpp_bids.push_back(OrderBookEntry(row[0], row[1], <int64_t>(row[2])))
+            cpp_bids.push_back(OrderBookEntry(row[0], row[1], <int64_t>(row[2]), <int64_t>(row[3])))
             last_update_id = max(last_update_id, <int64_t>row[2])
         for row in asks_array:
-            cpp_asks.push_back(OrderBookEntry(row[0], row[1], <int64_t>(row[2])))
+            cpp_asks.push_back(OrderBookEntry(row[0], row[1], <int64_t>(row[2]), <int64_t>(row[3])))
             last_update_id = max(last_update_id, <int64_t>row[2])
         self.c_apply_diffs(cpp_bids, cpp_asks, last_update_id)
 
@@ -252,10 +252,10 @@ cdef class OrderBook(PubSub):
             int64_t last_update_id = 0
 
         for row in bids_array:
-            cpp_bids.push_back(OrderBookEntry(row[0], row[1], <int64_t>(row[2])))
+            cpp_bids.push_back(OrderBookEntry(row[0], row[1], <int64_t>(row[2]), <int64_t>(row[3])))
             last_update_id = max(last_update_id, <int64_t>row[2])
         for row in asks_array:
-            cpp_asks.push_back(OrderBookEntry(row[0], row[1], <int64_t>(row[2])))
+            cpp_asks.push_back(OrderBookEntry(row[0], row[1], <int64_t>(row[2]), <int64_t>(row[3])))
             last_update_id = max(last_update_id, <int64_t>row[2])
         self.c_apply_snapshot(cpp_bids, cpp_asks, last_update_id)
 
@@ -265,7 +265,7 @@ cdef class OrderBook(PubSub):
             OrderBookEntry entry
         while it != self._bid_book.rend():
             entry = deref(it)
-            yield OrderBookRow(entry.getPrice(), entry.getAmount(), entry.getUpdateId())
+            yield OrderBookRow(entry.getPrice(), entry.getAmount(), entry.getUpdateId(), entry.getTimestamp())
             inc(it)
 
     def ask_entries(self) -> Iterator[OrderBookRow]:
@@ -274,7 +274,7 @@ cdef class OrderBook(PubSub):
             OrderBookEntry entry
         while it != self._ask_book.end():
             entry = deref(it)
-            yield OrderBookRow(entry.getPrice(), entry.getAmount(), entry.getUpdateId())
+            yield OrderBookRow(entry.getPrice(), entry.getAmount(), entry.getUpdateId(), entry.getTimestamp())
             inc(it)
 
     def simulate_buy(self, amount: float) -> List[OrderBookRow]:
@@ -286,7 +286,7 @@ cdef class OrderBook(PubSub):
                 retval.append(ask_entry)
                 amount_left -= ask_entry.amount
             else:
-                retval.append(OrderBookRow(ask_entry.price, amount_left, ask_entry.update_id))
+                retval.append(OrderBookRow(ask_entry.price, amount_left, ask_entry.update_id, ask_entry.timestamp))
                 amount_left = 0.0
                 break
         return retval
@@ -300,7 +300,7 @@ cdef class OrderBook(PubSub):
                 retval.append(bid_entry)
                 amount_left -= bid_entry.amount
             else:
-                retval.append(OrderBookRow(bid_entry.price, amount_left, bid_entry.update_id))
+                retval.append(OrderBookRow(bid_entry.price, amount_left, bid_entry.update_id, bid_entry.timestamp))
                 amount_left = 0.0
                 break
         return retval
@@ -386,6 +386,29 @@ cdef class OrderBook(PubSub):
                     break
 
         return OrderBookQueryResult(NaN, quote_volume, result_price, min(cumulative_volume, quote_volume))
+
+    cdef OrderBookQueryResult c_get_price_for_stable_volume(self, bint is_buy, double volume):
+        cdef:
+            double cumulative_volume = 0
+            double result_price = NaN
+            double now = time.time()
+
+        if is_buy:
+            for order_book_row in self.ask_entries():
+                if order_book_row.timestamp > now-5:
+                    cumulative_volume += order_book_row.amount
+                    if cumulative_volume >= volume:
+                        result_price = order_book_row.price
+                        break
+        else:
+            for order_book_row in self.bid_entries():
+                if order_book_row.timestamp > now-5:
+                    cumulative_volume += order_book_row.amount
+                    if cumulative_volume >= volume:
+                        result_price = order_book_row.price
+                        break
+
+        return OrderBookQueryResult(NaN, volume, result_price, min(cumulative_volume, volume))
 
     cdef OrderBookQueryResult c_get_quote_volume_for_base_amount(self, bint is_buy, double base_amount):
         cdef:

@@ -4,24 +4,28 @@
 OrderBookEntry::OrderBookEntry() {
     this->price = this->amount = 0;
     this->updateId = 0;
+    this->timestamp = 0;
 }
 
-OrderBookEntry::OrderBookEntry(double price, double amount, int64_t updateId) {
+OrderBookEntry::OrderBookEntry(double price, double amount, int64_t updateId, int64_t timestamp) {
     this->price = price;
     this->amount = amount;
     this->updateId = updateId;
+    this->timestamp = timestamp;
 }
 
 OrderBookEntry::OrderBookEntry(const OrderBookEntry &other) {
     this->price = other.price;
     this->amount = other.amount;
     this->updateId = other.updateId;
+    this->timestamp = other.timestamp;
 }
 
 OrderBookEntry &OrderBookEntry::operator=(const OrderBookEntry &other) {
     this->price = other.price;
     this->amount = other.amount;
     this->updateId = other.updateId;
+    this->timestamp = other.timestamp;
     return *this;
 }
 
@@ -89,4 +93,8 @@ double OrderBookEntry::getAmount() const {
 
 int64_t OrderBookEntry::getUpdateId() const {
     return this->updateId;
+}
+
+int64_t OrderBookEntry::getTimestamp() const {
+    return this->timestamp;
 }
