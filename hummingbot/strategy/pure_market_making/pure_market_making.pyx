@@ -843,8 +843,10 @@ cdef class PureMarketMakingStrategy(StrategyBase):
                 self.trading_pair,
                 top_bid_price
             )
-            self.logger().info("Stable buy price wall %f for depth %d.",
-                               price_quantum, self._bid_order_optimization_depth)
+            self.log_with_clock(
+                logging.INFO,
+                f"Stable buy price wall at {top_bid_price} for depth {self._bid_order_optimization_depth} "
+            )
             # Get the price above the top bid
             price_above_bid = (ceil(top_bid_price / price_quantum) + 1) * price_quantum
 
@@ -861,8 +863,10 @@ cdef class PureMarketMakingStrategy(StrategyBase):
                 self.trading_pair,
                 top_ask_price
             )
-            self.logger.info("Stable sell price wall %f for depth %d.",
-                             price_quantum, self._bid_order_optimization_depth)
+            self.log_with_clock(
+                logging.INFO,
+                f"Stable sell price wall at {top_ask_price} for depth {self._ask_order_optimization_depth} "
+            )
             # Get the price below the top ask
             price_below_ask = (floor(top_ask_price / price_quantum) - 1) * price_quantum
 
