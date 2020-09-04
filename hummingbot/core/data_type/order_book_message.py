@@ -54,13 +54,13 @@ class OrderBookMessage(namedtuple("_OrderBookMessage", "type, content, timestamp
     @property
     def asks(self) -> List[OrderBookRow]:
         return [
-            OrderBookRow(float(price), float(amount), self.update_id) for price, amount, *trash in self.content["asks"]
+            OrderBookRow(float(price), float(amount), self.update_id, self.timestamp) for price, amount, *trash in self.content["asks"]
         ]
 
     @property
     def bids(self) -> List[OrderBookRow]:
         return [
-            OrderBookRow(float(price), float(amount), self.update_id) for price, amount, *trash in self.content["bids"]
+            OrderBookRow(float(price), float(amount), self.update_id, self.timestamp) for price, amount, *trash in self.content["bids"]
         ]
 
     @property
