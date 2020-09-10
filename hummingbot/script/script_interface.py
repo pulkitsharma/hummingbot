@@ -60,8 +60,8 @@ class PMMParameters:
         # self._inventory_target_base_pct = None
         # self._inventory_range_multiplier = None
         # self._order_optimization_enabled = None
-        # self._ask_order_optimization_depth = None
-        # self._bid_order_optimization_depth = None
+        self._ask_order_optimization_depth = None
+        self._bid_order_optimization_depth = None
         # self._add_transaction_costs_to_orders = None
         # self._price_ceiling = None
         # self._price_floor = None
@@ -86,8 +86,8 @@ class PMMParameters:
     # inventory_target_base_pct = PMMParameter("inventory_target_base_pct")
     # inventory_range_multiplier = PMMParameter("inventory_range_multiplier")
     # order_optimization_enabled = PMMParameter("order_optimization_enabled")
-    # ask_order_optimization_depth = PMMParameter("ask_order_optimization_depth")
-    # bid_order_optimization_depth = PMMParameter("bid_order_optimization_depth")
+    ask_order_optimization_depth = StrategyParameter("ask_order_optimization_depth")
+    bid_order_optimization_depth = StrategyParameter("bid_order_optimization_depth")
     # add_transaction_costs_to_orders = PMMParameter("add_transaction_costs_to_orders")
     # price_ceiling = PMMParameter("price_ceiling")
     # price_floor = PMMParameter("price_floor")

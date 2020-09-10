@@ -824,6 +824,9 @@ cdef class PureMarketMakingStrategy(StrategyBase):
             ExchangeBase market = self._market_info.market
             object own_buy_size = s_decimal_zero
             object own_sell_size = s_decimal_zero
+            double now = 0
+            double cumulative_volume = 0
+            double result_price = NaN
 
         # If there are multiple orders, do not jump prices
         if self._order_levels > 1:
@@ -848,7 +851,7 @@ cdef class PureMarketMakingStrategy(StrategyBase):
                 f"Stable buy price wall at {top_bid_price} for depth {self._bid_order_optimization_depth} "
             )
             # Get the price above the top bid
-            price_above_bid = (ceil(top_bid_price / price_quantum) + 1) * price_quantum
+            price_above_bid = (ceil(top_bid_price / price_quantum) - 1) * price_quantum
 
             # If the price_above_bid is lower than the price suggested by the pricing proposal,
             # lower your price to this
@@ -865,10 +868,10 @@ cdef class PureMarketMakingStrategy(StrategyBase):
             )
             self.log_with_clock(
                 logging.INFO,
-                f"Stable sell price wall at {top_ask_price} for depth {self._ask_order_optimization_depth} "
+                f"Stable sell price wall at {top_ask_price} for depth {self._ask_order_optimization_depth}"
             )
             # Get the price below the top ask
-            price_below_ask = (floor(top_ask_price / price_quantum) - 1) * price_quantum
+            price_below_ask = (floor(top_ask_price / price_quantum) + 1) * price_quantum
 
             # If the price_below_ask is higher than the price suggested by the pricing proposal,
             # increase your price to this
@@ -1045,9 +1048,6 @@ cdef class PureMarketMakingStrategy(StrategyBase):
             for order in active_orders:
                 self.c_cancel_order(self._market_info, order.client_order_id)
         else:
-            self.logger().info(f"Not cancelling active orders since difference between new order prices "
-                               f"and current order prices is within "
-                               f"{self._order_refresh_tolerance_pct:.2%} order_refresh_tolerance_pct")
             self.set_timers()
 
     cdef c_cancel_hanging_orders(self):

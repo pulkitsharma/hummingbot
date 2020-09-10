@@ -402,7 +402,8 @@ cdef class MarketBase(NetworkIterator):
         for entry in order_book.bid_entries():
             yield ClientOrderBookRow(self.c_quantize_order_price(trading_pair, Decimal(entry.price)),
                                      self.c_quantize_order_amount(trading_pair, Decimal(entry.amount)),
-                                     entry.update_id)
+                                     entry.update_id,
+                                     entry.timestamp)
 
     def order_book_ask_entries(self, trading_pair) -> Iterator[ClientOrderBookRow]:
         cdef:
@@ -410,7 +411,8 @@ cdef class MarketBase(NetworkIterator):
         for entry in order_book.ask_entries():
             yield ClientOrderBookRow(self.c_quantize_order_price(trading_pair, Decimal(entry.price)),
                                      self.c_quantize_order_amount(trading_pair, Decimal(entry.amount)),
-                                     entry.update_id)
+                                     entry.update_id,
+                                     entry.timestamp)
     # ----------------------------------------------------------------------------------------------------------
     # </editor-fold>
 
@@ -421,6 +423,9 @@ cdef class MarketBase(NetworkIterator):
 
     def get_price_for_volume(self, trading_pair: str, is_buy: bool, volume: Decimal):
         return self.c_get_price_for_volume(trading_pair, is_buy, volume)
+
+    def get_price_for_stable_volume(self, trading_pair: str, is_buy: bool, volume: Decimal):
+        return self.c_get_price_for_stable_volume(trading_pair, is_buy, volume)
 
     def get_quote_volume_for_base_amount(self, trading_pair: str, is_buy: bool,
                                          base_amount: Decimal) -> ClientOrderBookQueryResult:
