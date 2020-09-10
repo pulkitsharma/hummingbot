@@ -391,18 +391,19 @@ cdef class OrderBook(PubSub):
         cdef:
             double cumulative_volume = 0
             double result_price = NaN
-            double now = time.time()
+            double now = 0
 
+        now = time.time()
         if is_buy:
             for order_book_row in self.ask_entries():
-                if order_book_row.timestamp > now-5:
+                if now - order_book_row.timestamp > 10:
                     cumulative_volume += order_book_row.amount
                     if cumulative_volume >= volume:
                         result_price = order_book_row.price
                         break
         else:
             for order_book_row in self.bid_entries():
-                if order_book_row.timestamp > now-5:
+                if now - order_book_row.timestamp > 10:
                     cumulative_volume += order_book_row.amount
                     if cumulative_volume >= volume:
                         result_price = order_book_row.price
