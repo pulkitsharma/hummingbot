@@ -49,6 +49,8 @@ cdef class CandleSpikeStrategy(StrategyBase):
         double _fill_order_timestamp
         int _minutes_elapsed
         object _price_adjustment_per_min
+        object _stop_pct
+        bint _stop_loss_triggered
 
     cdef object c_get_mid_price(self)
     cdef object c_get_high_price(self)

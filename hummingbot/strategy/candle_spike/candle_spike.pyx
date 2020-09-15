@@ -89,6 +89,8 @@ cdef class CandleSpikeStrategy(StrategyBase):
                  status_report_interval: float = 60,
                  minimum_spread: Decimal = Decimal(0),
                  price_adjustment_per_min: Decimal = Decimal("0.0001"),
+                 stop_pct: Decimal = Decimal(0.03),
+                 stop_loss_triggered: bool = False,
                  hb_app_notification: bool = False,
                  ):
 
@@ -142,6 +144,8 @@ cdef class CandleSpikeStrategy(StrategyBase):
         self._fill_order_timestamp = 0
         self._minutes_elapsed = 0
         self._price_adjustment_per_min = price_adjustment_per_min
+        self._stop_pct = stop_pct
+        self._stop_loss_triggered = stop_loss_triggered
 
         self.c_add_markets([market_info.market])
 
@@ -608,7 +612,12 @@ cdef class CandleSpikeStrategy(StrategyBase):
                 size = size + limit_order_record.quantity
             price = price/size
             price = price * (1+self._bid_spread/2-self._minutes_elapsed*self._price_adjustment_per_min)
-            self.logger().info(f"Already bought, creating profit sell order at {price} {self._bid_spread/2} {self._minutes_elapsed*self._price_adjustment_per_min}")
+            stop_price = price * (1-self._stop_pct)
+            if price < stop_price:
+                self._stop_loss_triggered=True
+                self.logger().info(f"Stop loss triggered at price {stop_price}")
+            else:
+                self.logger().info(f"Already bought, creating profit sell order at {price} {self._bid_spread/2} {self._minutes_elapsed*self._price_adjustment_per_min}")
             price = market.c_quantize_order_price(self.trading_pair, price)
             size = market.c_quantize_order_amount(self.trading_pair, size)
             if size > 0:
@@ -621,7 +630,12 @@ cdef class CandleSpikeStrategy(StrategyBase):
                 size = size + limit_order_record.quantity
             price = price/size
             price = price * (1-self._ask_spread/2+self._minutes_elapsed*self._price_adjustment_per_min)
-            self.logger().info(f"Already sold, creating profit buy order at {price} {self._ask_spread/2} {self._minutes_elapsed*self._price_adjustment_per_min}")
+            stop_price = price * (1+self._stop_pct)
+            if price > stop_price:
+                self._stop_loss_triggered=False
+                self.logger().info(f"Stop loss triggered at price {stop_price}")
+            else:
+                self.logger().info(f"Already sold, creating profit buy order at {price} {self._ask_spread/2} {self._minutes_elapsed*self._price_adjustment_per_min}")
             price = market.c_quantize_order_price(self.trading_pair, price)
             size = market.c_quantize_order_amount(self.trading_pair, size)
             if size > 0:
@@ -1028,6 +1042,10 @@ cdef class CandleSpikeStrategy(StrategyBase):
             str bid_order_id, ask_order_id
             bint orders_created = False
 
+        if self._stop_loss_triggered:
+            order_type = OrderType.MARKET
+        else:
+            order_type = self._limit_order_type
         if len(proposal.buys) > 0:
             if self._logging_options & self.OPTION_LOG_CREATE_ORDER:
                 price_quote_str = [f"{buy.size.normalize()} {self.base_asset}, "
@@ -1041,7 +1059,7 @@ cdef class CandleSpikeStrategy(StrategyBase):
                 bid_order_id = self.c_buy_with_specific_market(
                     self._market_info,
                     buy.size,
-                    order_type=self._limit_order_type,
+                    order_type=order_type,
                     price=buy.price,
                     expiration_seconds=expiration_seconds
                 )
@@ -1059,11 +1077,12 @@ cdef class CandleSpikeStrategy(StrategyBase):
                 ask_order_id = self.c_sell_with_specific_market(
                     self._market_info,
                     sell.size,
-                    order_type=self._limit_order_type,
+                    order_type=order_type,
                     price=sell.price,
                     expiration_seconds=expiration_seconds
                 )
                 orders_created = True
+        self._stop_loss_triggered = False
         if orders_created:
             self.set_timers()
 
